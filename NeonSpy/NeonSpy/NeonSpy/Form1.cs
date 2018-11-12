@@ -175,39 +175,53 @@ namespace NeonSpy
         //  ПОЛУЧЕНИЕ КОЛИЧЕСТВА ДНЕЙ ОТСУТСТВИЯ РАБОТНИКА
         private void button4_Click(object sender, EventArgs e)
         {
-            DateTime currentDate = new DateTime();
-            string day = dateTimePicker1.Value.ToShortDateString();
-            string dataSt = GetTrueData(day, "start"), dataEn = GetTrueData(day, "end"), currentDay = day.Substring(0, 2);
-            //string dataSt = "", dataEn = "", currentDay = day.Substring(0, 2);
-            string dataStart = "", dataEnd = "", dataForCheck = "";
+            int daysInCurrentMonth = DateTime.DaysInMonth(Convert.ToInt32(comboBox3.Text), comboBox2.SelectedIndex + 1);
+            int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0;
+            bool printTheData = false;
+            string day = "";
+            if (comboBox2.SelectedIndex < 9)
+                day = "01.0" + (comboBox2.SelectedIndex + 1).ToString() + "." + comboBox3.Text;
+            else
+                day = "01." + (comboBox2.SelectedIndex + 1).ToString() + "." + comboBox3.Text;
+            string dataSt = GetTrueData(day, "start"), dataEn = GetTrueData(day, "end");
+            string dataStart = "", dataEnd = "", dataForCheck = "", dataStartMonth = "", dataEndMonth = "";
 
-            int daysInCurrentMonth = DateTime.DaysInMonth(currentDate.Year, currentDate.Month);
-            int workDaysEmployeeInCurrentMonth = 0;
-
+            dataGridView1.DataSource = null;
             if (IsEmployeeChecked())
             {
+                DialogResult res = MessageBox.Show("Загрузить данные по сотруднику в таблицу?", "Уведомление", MessageBoxButtons.YesNo);
+                if (res == DialogResult.Yes)
+                    printTheData = true;
+                
                 for (int i = 1; i < daysInCurrentMonth; i++)
                 {
                     if (i < 10)
                     {
-                        dataStart = dataSt.Replace("01", "0" + i.ToString());
-                        dataEnd = dataEn.Replace("01", "0" + i.ToString());
-                        dataForCheck = day.Replace("01", "0" + i.ToString());
+                        dataStart = dataSt.Substring(0, 4) + " " + i.ToString() + dataSt.Substring(6, 15);
+                        if (i == 1)
+                            dataStartMonth = dataStart;
+                        dataEnd = dataEn.Substring(0, 4) + " " + i.ToString() + dataEn.Substring(6, 15);
+                        dataForCheck = "0" + i.ToString() + day.Substring(2, 8);
                     }
                     else
                     {
-                        dataStart = dataSt.Replace("01", i.ToString());
-                        dataEnd = dataEn.Replace("01", i.ToString());
-                        dataForCheck = day.Replace("01", i.ToString());
+                        dataStart = dataSt.Substring(0, 4) + i.ToString() + dataSt.Substring(6, 15);
+                        dataEnd = dataEn.Substring(0, 4) + i.ToString() + dataEn.Substring(6, 15);
+                        if (i == daysInCurrentMonth - 1)
+                            dataEndMonth = dataEnd;
+                        dataForCheck = i.ToString() + day.Substring(2, 8);
                     }
                     if ((Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday) || (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday))
+                    {
+                        holidayDaysInMonth++;
                         continue;
+                    }
 
                     string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
                     NpgsqlConnection conn = new NpgsqlConnection(connstring);
                     conn.Open();
                     NpgsqlCommand comandSelect = new NpgsqlCommand("SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] +
-                                                                   "' AND \"appearTime\" > '" + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"appearTime\"", conn);
+                                                                   "' AND \"appearTime\" > '" + dataStart + "' AND \"appearTime\" < '" + dataEnd + "'", conn);
                     NpgsqlDataReader reader;
                     reader = comandSelect.ExecuteReader();
                     if (reader.HasRows)
@@ -215,7 +229,22 @@ namespace NeonSpy
                     reader.Dispose();
                     conn.Close();
                 }
-                MessageBox.Show("Дней в месяце рабочих - " + daysInCurrentMonth + "   Сотрудник отработал - " + workDaysEmployeeInCurrentMonth + "   Пропущенно дней - " + (daysInCurrentMonth - workDaysEmployeeInCurrentMonth));
+                if (printTheData)
+                {
+                    string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
+                    NpgsqlConnection conn = new NpgsqlConnection(connstring);
+                    conn.Open();
+                    string sql = "SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] + "' AND \"appearTime\" > '" + dataStartMonth + "' AND \"appearTime\" < '" + dataEndMonth + "' ORDER BY \"appearTime\"";
+                    NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
+                    ds.Reset();
+                    dt.Clear();
+                    da.Fill(ds);
+                    dt = ds.Tables[0];
+                    dataGridView1.DataSource = dt;
+                    conn.Close();
+                }
+                label8.Text = "Дней отсутствия: " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth);
+                //MessageBox.Show("Дней в месяце - " + daysInCurrentMonth + "   Рабочих дней в месяце - " + (daysInCurrentMonth - holidayDaysInMonth).ToString() + "   Сотрудник отработал - " + workDaysEmployeeInCurrentMonth + "   Пропущенно дней - " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth));
             }
             else
                 MessageBox.Show("Не выбран сотрудник!");
