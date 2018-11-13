@@ -25,27 +25,31 @@ namespace NeonSpy
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Size resolution = Screen.PrimaryScreen.Bounds.Size;
-            // if (resolution.Height == 1080)
-            //    Size = new Size(1366, 768);
-            //else
-            //    Size = new Size(1280, 1024);
-            Size = new Size(1366, 768);
+            //Size resolution = Screen.PrimaryScreen.Bounds.Size;
+            Size = new Size(1220, 800);
             Top = 0;
             Left = 0;
-            panel1.Width = this.Width - 40;
-            dataGridView1.Width = panel1.Width;
-            dataGridView1.Height = Convert.ToInt32(this.Height / 1.45);
-            button1.Top = dataGridView1.Top + dataGridView1.Height + 10;
-            button1.Left = dataGridView1.Left + dataGridView1.Width - button1.Width;
+            dataGridView1.Width = Width - 40;
+            dataGridView1.Height = Convert.ToInt32(Height / 1.6);
+            panel1.Width = dataGridView1.Width / 2;
+            panel1.Height = comboBox1.Height * 7;
+            panel2.Width = panel1.Width;
+            panel2.Height = panel1.Height;
+            panel2.Top = panel1.Top;
+            panel2.Left = panel1.Left + panel1.Width - 1;
+            button1.Top = label9.Top + label9.Height + 8;
+            button1.Left = comboBox1.Left;
             button2.Top = button1.Top;
-            button2.Left = button1.Left - button2.Width - 10;
-            button3.Top = button1.Top;
+            button2.Left = button1.Left + button1.Width + 10;
+            button4.Top = button1.Top;
+            button4.Left = label8.Left;
+            button5.Top = button4.Top;
+            button5.Left = button4.Left + button4.Width + 10;
+            button6.Top = button5.Top;
+            button6.Left = button5.Left + button5.Width + 10;
+            dataGridView1.Top = panel1.Top + panel1.Height - 1;
+            button3.Top = dataGridView1.Top + dataGridView1.Height + 10;
             button3.Left = dataGridView1.Left;
-            button4.Top = comboBox1.Top;
-            button4.Left = panel1.Left + panel1.Width - button4.Width - 30;
-            button5.Top = button4.Top + button4.Height + 10;
-            button5.Left = button4.Left;
 
             MonthToCombo.Add(01, "Январь");
             MonthToCombo.Add(02, "Февраль");
@@ -153,13 +157,17 @@ namespace NeonSpy
                 { 
                     startWorkTime = dataGridView1.Rows[0].Cells[3].Value.ToString();
                     endWorkTime = dataGridView1.Rows[dataGridView1.RowCount - 2].Cells[3].Value.ToString();
-                    label3.Text = "Приход на работу: " + startWorkTime.Substring(13, 8);
-                    label4.Text = "Уход с работы: " + endWorkTime.Substring(13, 8);
+                    //label3.Text = "Приход на работу: " + startWorkTime.Substring(13, 8);
+                    //label4.Text = "Уход с работы: " + endWorkTime.Substring(13, 8);
+                    textBox1.Text = startWorkTime.Substring(13, 8);
+                    textBox2.Text = endWorkTime.Substring(13, 8);
                 }
                 else
                 {
-                    label3.Text = "Приход на работу: отсутствуют данные";
-                    label4.Text = "Уход с работы: отсутствуют данные";
+                    //label3.Text = "Приход на работу: отсутствуют данные";
+                    //label4.Text = "Уход с работы: отсутствуют данные";
+                    textBox1.Text = "-";
+                    textBox2.Text = "-";
                 }
             }
             else
@@ -182,8 +190,12 @@ namespace NeonSpy
         //  СРЕДНЕЕ ВРЕМЯ ПРИХОДА И УХОДА
         private void button5_Click(object sender, EventArgs e)
         {
-            //List<string> arrayTimePrihod, arrayTimeUhod;
             RequestData("prihod-uhod");
+        }
+        //  РАСЧЕТ СРЕДНЕГО РАБОЧИЙ ДНЯ ЗА МЕСЯЦ
+        private void button6_Click(object sender, EventArgs e)
+        {
+            RequestData("srednii-4as");
         }
         //  ВЫБОРКА НА МЕСЯЦ
         private void RequestData(string _type)
@@ -198,10 +210,13 @@ namespace NeonSpy
                 day = "01." + (comboBox2.SelectedIndex + 1).ToString() + "." + comboBox3.Text;
             string dataSt = GetTrueData(day, "start"), dataEn = GetTrueData(day, "end");
             string dataStart = "", dataEnd = "", dataForCheck = "", dataStartMonth = "", dataEndMonth = "";
-
-            List<string> arrayTimePrihod = new List<string>(), arrayTimeUhod = new List<string>();    // Для прихода-ухода
+            // Для прихода-ухода
+            List<string> arrayTimePrihod = new List<string>(), arrayTimeUhod = new List<string>();    
             bool isFirstDay;
             string strForLastDay = "";
+            // Для среднего часа
+            List<int> arraySredniChas = new List<int>();
+            string averHourInMonth = "";
 
             dataGridView1.DataSource = null;
             if (IsEmployeeChecked())
@@ -246,7 +261,7 @@ namespace NeonSpy
                     {
                         workDaysEmployeeInCurrentMonth++;
                         //  Приход-уход
-                        if (string.Compare(_type, "prihod-uhod") == 0)
+                        if (string.Compare(_type, "prihod-uhod") == 0 || string.Compare(_type, "srednii-4as") == 0)
                         {
                             while (reader.Read())
                             {
@@ -262,7 +277,18 @@ namespace NeonSpy
                         arrayTimeUhod.Add(strForLastDay);
                         ///////////////////////
                     }
-
+                    //  Средний час
+                    double averageHoursInMonth = 0;
+                    if (string.Compare(_type, "srednii-4as") == 0)
+                    {
+                        for (int j = 0; j < arrayTimePrihod.Count; j++)
+                            arraySredniChas.Add(ConvertTimeToSeconds(arrayTimeUhod[j]) - ConvertTimeToSeconds(arrayTimePrihod[j]));
+                        foreach (int val in arraySredniChas)
+                            averageHoursInMonth += val;
+                        averageHoursInMonth /= arraySredniChas.Count;
+                        averHourInMonth = ConvertSecondsToTime(averageHoursInMonth); 
+                    }
+                    ///////////////////////
                     reader.Dispose();
                     conn.Close();
                 }
@@ -281,9 +307,11 @@ namespace NeonSpy
                     conn.Close();
                 }
                 if (string.Compare(_type, "otsutstvie") == 0)
-                    label8.Text = "Дней отсутствия: " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth);
+                    textBox4.Text = (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth).ToString();
                 else if (string.Compare(_type, "prihod-uhod") == 0)
-                    label5.Text = "Среднее время (приход/уход): " + CalculateAverTimePrihodUhod(arrayTimePrihod) + " / " + CalculateAverTimePrihodUhod(arrayTimeUhod);
+                    textBox3.Text = CalculateAverTimePrihodUhod(arrayTimePrihod) + " / " + CalculateAverTimePrihodUhod(arrayTimeUhod);
+                else if (string.Compare(_type, "srednii-4as") == 0)
+                    textBox5.Text = averHourInMonth;
             }
             else
                 MessageBox.Show("Не выбран сотрудник!");
@@ -297,16 +325,49 @@ namespace NeonSpy
             // Подсчет 
             foreach(string val in _list)
             {
-                totalSeconds = Convert.ToInt32(val.Substring(0, 2)) * 3600 + Convert.ToInt32(val.Substring(3, 2)) * 60 + Convert.ToInt32(val.Substring(6, 2));
+                totalSeconds = ConvertTimeToSeconds(val);
                 sumSeconds += totalSeconds;
                 count++;
             }
             averSeconds = sumSeconds / count;
-            hh = averSeconds / 3600;
+            res = ConvertSecondsToTime(averSeconds);
+            //hh = averSeconds / 3600;
+            //h = (int)hh;
+            //mm = (averSeconds - h * 3600) / 60;
+            //m = (int)mm;
+            //ss = averSeconds - h * 3600 - m * 60;
+            //s = (int)ss;
+
+            //if (h < 10)
+            //    res += "0" + h.ToString();
+            //else
+            //    res += h.ToString();
+            //if (m < 10)
+            //    res += ":0" + m.ToString();
+            //else
+            //    res += ":" + m.ToString();
+            //if (s < 10)
+            //    res += ":0" + s.ToString();
+            //else
+            //    res += ":" + s.ToString();
+            return res;
+        }
+        //  КОНВЕРТИРОВАНИЕ ВРЕМЕНИ В СЕКУНДЫ
+        private int ConvertTimeToSeconds(string _time)
+        {
+            return(Convert.ToInt32(_time.Substring(0, 2)) * 3600 + Convert.ToInt32(_time.Substring(3, 2)) * 60 + Convert.ToInt32(_time.Substring(6, 2)));
+        }
+        //  КОНВЕРТИРОВАНИЕ СЕКУНД В ВРЕМЯ
+        private string ConvertSecondsToTime(double _val)
+        {
+            string res = "";
+            int h, m, s;
+            double hh, mm, ss;
+            hh = _val / 3600;
             h = (int)hh;
-            mm = (averSeconds - h * 3600) / 60;
+            mm = (_val - h * 3600) / 60;
             m = (int)mm;
-            ss = averSeconds - h * 3600 - m * 60;
+            ss = _val - h * 3600 - m * 60;
             s = (int)ss;
 
             if (h < 10)
@@ -388,5 +449,7 @@ namespace NeonSpy
                 res += ", " + _d.Substring(6, 4) + " 23:59:59";
             return res;
         }
+
+        
     }
 }
