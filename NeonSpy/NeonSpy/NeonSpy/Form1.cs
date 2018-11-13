@@ -34,17 +34,18 @@ namespace NeonSpy
             Top = 0;
             Left = 0;
             panel1.Width = this.Width - 40;
-            panel2.Width = panel1.Width;
             dataGridView1.Width = panel1.Width;
-            dataGridView1.Height = Convert.ToInt32(this.Height / 1.6);
+            dataGridView1.Height = Convert.ToInt32(this.Height / 1.45);
             button1.Top = dataGridView1.Top + dataGridView1.Height + 10;
             button1.Left = dataGridView1.Left + dataGridView1.Width - button1.Width;
             button2.Top = button1.Top;
             button2.Left = button1.Left - button2.Width - 10;
             button3.Top = button1.Top;
             button3.Left = dataGridView1.Left;
-            button4.Top = comboBox2.Top + comboBox2.Height + 10;
-            button4.Left = comboBox2.Left;
+            button4.Top = comboBox1.Top;
+            button4.Left = panel1.Left + panel1.Width - button4.Width - 30;
+            button5.Top = button4.Top + button4.Height + 10;
+            button5.Left = button4.Left;
 
             MonthToCombo.Add(01, "Январь");
             MonthToCombo.Add(02, "Февраль");
@@ -175,6 +176,18 @@ namespace NeonSpy
         //  ПОЛУЧЕНИЕ КОЛИЧЕСТВА ДНЕЙ ОТСУТСТВИЯ РАБОТНИКА
         private void button4_Click(object sender, EventArgs e)
         {
+            RequestData("otsutstvie");
+           
+        }
+        //  СРЕДНЕЕ ВРЕМЯ ПРИХОДА И УХОДА
+        private void button5_Click(object sender, EventArgs e)
+        {
+            //List<string> arrayTimePrihod, arrayTimeUhod;
+            RequestData("prihod-uhod");
+        }
+        //  ВЫБОРКА НА МЕСЯЦ
+        private void RequestData(string _type)
+        {
             int daysInCurrentMonth = DateTime.DaysInMonth(Convert.ToInt32(comboBox3.Text), comboBox2.SelectedIndex + 1);
             int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0;
             bool printTheData = false;
@@ -186,15 +199,20 @@ namespace NeonSpy
             string dataSt = GetTrueData(day, "start"), dataEn = GetTrueData(day, "end");
             string dataStart = "", dataEnd = "", dataForCheck = "", dataStartMonth = "", dataEndMonth = "";
 
+            List<string> arrayTimePrihod = new List<string>(), arrayTimeUhod = new List<string>();    // Для прихода-ухода
+            bool isFirstDay;
+            string strForLastDay = "";
+
             dataGridView1.DataSource = null;
             if (IsEmployeeChecked())
             {
                 DialogResult res = MessageBox.Show("Загрузить данные по сотруднику в таблицу?", "Уведомление", MessageBoxButtons.YesNo);
                 if (res == DialogResult.Yes)
                     printTheData = true;
-                
+
                 for (int i = 1; i < daysInCurrentMonth; i++)
                 {
+                    isFirstDay = true;
                     if (i < 10)
                     {
                         dataStart = dataSt.Substring(0, 4) + " " + i.ToString() + dataSt.Substring(6, 15);
@@ -211,7 +229,7 @@ namespace NeonSpy
                             dataEndMonth = dataEnd;
                         dataForCheck = i.ToString() + day.Substring(2, 8);
                     }
-                    if ((Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday) || (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday))
+                    if ((string.Compare(_type, "otsutstvie") == 0) && (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday) || (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday))
                     {
                         holidayDaysInMonth++;
                         continue;
@@ -221,11 +239,30 @@ namespace NeonSpy
                     NpgsqlConnection conn = new NpgsqlConnection(connstring);
                     conn.Open();
                     NpgsqlCommand comandSelect = new NpgsqlCommand("SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] +
-                                                                   "' AND \"appearTime\" > '" + dataStart + "' AND \"appearTime\" < '" + dataEnd + "'", conn);
+                                                                   "' AND \"appearTime\" > '" + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"appearTime\"", conn);
                     NpgsqlDataReader reader;
                     reader = comandSelect.ExecuteReader();
                     if (reader.HasRows)
+                    {
                         workDaysEmployeeInCurrentMonth++;
+                        //  Приход-уход
+                        if (string.Compare(_type, "prihod-uhod") == 0)
+                        {
+                            while (reader.Read())
+                            {
+                                if (isFirstDay)
+                                {
+                                    arrayTimePrihod.Add(reader["appearTime"].ToString().Substring(13, 8));
+                                    isFirstDay = false;
+                                }
+                                else
+                                    strForLastDay = reader["appearTime"].ToString().Substring(13, 8);
+                            }
+                        }
+                        arrayTimeUhod.Add(strForLastDay);
+                        ///////////////////////
+                    }
+
                     reader.Dispose();
                     conn.Close();
                 }
@@ -243,13 +280,50 @@ namespace NeonSpy
                     dataGridView1.DataSource = dt;
                     conn.Close();
                 }
-                label8.Text = "Дней отсутствия: " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth);
-                //MessageBox.Show("Дней в месяце - " + daysInCurrentMonth + "   Рабочих дней в месяце - " + (daysInCurrentMonth - holidayDaysInMonth).ToString() + "   Сотрудник отработал - " + workDaysEmployeeInCurrentMonth + "   Пропущенно дней - " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth));
+                if (string.Compare(_type, "otsutstvie") == 0)
+                    label8.Text = "Дней отсутствия: " + (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth);
+                else if (string.Compare(_type, "prihod-uhod") == 0)
+                    label5.Text = "Среднее время (приход/уход): " + CalculateAverTimePrihodUhod(arrayTimePrihod) + " / " + CalculateAverTimePrihodUhod(arrayTimeUhod);
             }
             else
                 MessageBox.Show("Не выбран сотрудник!");
         }
+        //  РАСЧЕТ ВРЕМЕНИ ПРИХОДА-УХОДА
+        private string CalculateAverTimePrihodUhod(List<string> _list)
+        {
+            int totalSeconds = 0, sumSeconds = 0, count = 0, h, m, s;
+            string res = "";
+            double hh, mm, ss, averSeconds;
+            // Подсчет 
+            foreach(string val in _list)
+            {
+                totalSeconds = Convert.ToInt32(val.Substring(0, 2)) * 3600 + Convert.ToInt32(val.Substring(3, 2)) * 60 + Convert.ToInt32(val.Substring(6, 2));
+                sumSeconds += totalSeconds;
+                count++;
+            }
+            averSeconds = sumSeconds / count;
+            hh = averSeconds / 3600;
+            h = (int)hh;
+            mm = (averSeconds - h * 3600) / 60;
+            m = (int)mm;
+            ss = averSeconds - h * 3600 - m * 60;
+            s = (int)ss;
 
+            if (h < 10)
+                res += "0" + h.ToString();
+            else
+                res += h.ToString();
+            if (m < 10)
+                res += ":0" + m.ToString();
+            else
+                res += ":" + m.ToString();
+            if (s < 10)
+                res += ":0" + s.ToString();
+            else
+                res += ":" + s.ToString();
+            return res;
+        }
+        //  ПРОВЕРКА ВЫБРАН ЛИ СОТРУДНИК 
         private bool IsEmployeeChecked()
         {
             if (comboBox1.Text != "")

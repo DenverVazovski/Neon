@@ -222,7 +222,6 @@ D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\bin\Debug\Npgsql.xml
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\bin\Debug\System.Threading.Tasks.Extensions.xml
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\bin\Debug\System.ValueTuple.xml
-D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.csprojAssemblyReference.cache
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.exe.config
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.Form1.resources
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.Form2.resources
