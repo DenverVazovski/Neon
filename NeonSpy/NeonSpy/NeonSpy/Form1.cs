@@ -16,6 +16,9 @@ namespace NeonSpy
         private DataSet ds = new DataSet();
         private DataTable dt = new DataTable();
 
+        private string selectedEmployee = "", selectedWorkDay = "", selectedWorkMonth = "", selectedWorkYear = "";
+        private bool fstRunCombo2 = true, fstRunCombo3 = true;
+
         Form2 employeForm;
 
         public Form1()
@@ -30,23 +33,17 @@ namespace NeonSpy
             Top = 0;
             Left = 0;
             dataGridView1.Width = Width - 40;
-            dataGridView1.Height = Convert.ToInt32(Height / 1.6);
+            dataGridView1.Height = Convert.ToInt32(Height / 1.5);
             panel1.Width = dataGridView1.Width / 2;
-            panel1.Height = comboBox1.Height * 7;
+            panel1.Height = comboBox1.Height * 6;
             panel2.Width = panel1.Width;
             panel2.Height = panel1.Height;
             panel2.Top = panel1.Top;
             panel2.Left = panel1.Left + panel1.Width - 1;
-            button1.Top = label9.Top + label9.Height + 8;
+            button1.Top = label4.Top + label4.Height + 8;
             button1.Left = comboBox1.Left;
             button2.Top = button1.Top;
             button2.Left = button1.Left + button1.Width + 10;
-            button4.Top = button1.Top;
-            button4.Left = label8.Left;
-            button5.Top = button4.Top;
-            button5.Left = button4.Left + button4.Width + 10;
-            button6.Top = button5.Top;
-            button6.Left = button5.Left + button5.Width + 10;
             dataGridView1.Top = panel1.Top + panel1.Height - 1;
             button3.Top = dataGridView1.Top + dataGridView1.Height + 10;
             button3.Left = dataGridView1.Left;
@@ -77,14 +74,25 @@ namespace NeonSpy
             foreach (DataGridViewColumn col in dataGridView1.Columns)
                 col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // Авто-высота
-            dataGridView1.AutoResizeColumnHeadersHeight();
-            dataGridView1.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+            //dataGridView1.AutoResizeColumnHeadersHeight();
+            // dataGridView1.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
             // Авто-ширина
             dataGridView1.AutoResizeColumns();
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
 
+            dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing; //or even better .DisableResizing. Most time consumption enum is DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders
+            // set it to false if not needed
+            dataGridView1.RowHeadersVisible = false;
+
             comboBox2.Text = MonthToCombo[Convert.ToInt32(DateTime.Now.ToString().Substring(3, 2))];
             comboBox3.Text = DateTime.Now.ToString().Substring(6, 4);
+
+            pictureBox1.Top = button3.Top - 4;
+            pictureBox1.Left = dataGridView1.Left + dataGridView1.Width - pictureBox1.Width;
+
+            label9.Top = label1.Top - 10;
+            //label9.Left = label5.Left;
+            label9.Left = textBox4.Left + textBox4.Width - label9.Width;
         }
         //  ПОЛУЧЕНИЕ СОТРУДНИКОВ С МАКАМИ И ЗАГРУЗКА В КОМБОБОКС
         private void LoadEmployeeListInComboBox()
@@ -117,7 +125,6 @@ namespace NeonSpy
                                                   "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
                 NpgsqlConnection conn = new NpgsqlConnection(connstring);
                 conn.Open();
-                //string sql = "SELECT count(*) FROM tblData";
                 string sql = "SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] + "' ORDER BY \"appearTime\"";
                 NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
                 ds.Reset();
@@ -143,7 +150,6 @@ namespace NeonSpy
                                                   "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
                 NpgsqlConnection conn = new NpgsqlConnection(connstring);
                 conn.Open();
-                //string sql = "SELECT count(*) FROM tblData";
                 string sql = "SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] + "' AND \"appearTime\" > '"
                              + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"appearTime\"";
                 NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
@@ -157,15 +163,11 @@ namespace NeonSpy
                 { 
                     startWorkTime = dataGridView1.Rows[0].Cells[3].Value.ToString();
                     endWorkTime = dataGridView1.Rows[dataGridView1.RowCount - 2].Cells[3].Value.ToString();
-                    //label3.Text = "Приход на работу: " + startWorkTime.Substring(13, 8);
-                    //label4.Text = "Уход с работы: " + endWorkTime.Substring(13, 8);
                     textBox1.Text = startWorkTime.Substring(13, 8);
                     textBox2.Text = endWorkTime.Substring(13, 8);
                 }
                 else
                 {
-                    //label3.Text = "Приход на работу: отсутствуют данные";
-                    //label4.Text = "Уход с работы: отсутствуют данные";
                     textBox1.Text = "-";
                     textBox2.Text = "-";
                 }
@@ -181,29 +183,13 @@ namespace NeonSpy
 
             LoadEmployeeListInComboBox();
         }
-        //  ПОЛУЧЕНИЕ КОЛИЧЕСТВА ДНЕЙ ОТСУТСТВИЯ РАБОТНИКА
-        private void button4_Click(object sender, EventArgs e)
-        {
-            RequestData("otsutstvie");
-           
-        }
-        //  СРЕДНЕЕ ВРЕМЯ ПРИХОДА И УХОДА
-        private void button5_Click(object sender, EventArgs e)
-        {
-            RequestData("prihod-uhod");
-        }
-        //  РАСЧЕТ СРЕДНЕГО РАБОЧИЙ ДНЯ ЗА МЕСЯЦ
-        private void button6_Click(object sender, EventArgs e)
-        {
-            RequestData("srednii-4as");
-        }
         //  ВЫБОРКА НА МЕСЯЦ
-        private void RequestData(string _type)
+        private void RequestData()
         {
             int daysInCurrentMonth = DateTime.DaysInMonth(Convert.ToInt32(comboBox3.Text), comboBox2.SelectedIndex + 1);
-            int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0;
+            int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0, daysInCurrentMonthAfterToday = 0;
             bool printTheData = false;
-            string day = "";
+            string day = "", today = DateTime.Today.ToShortDateString();
             if (comboBox2.SelectedIndex < 9)
                 day = "01.0" + (comboBox2.SelectedIndex + 1).ToString() + "." + comboBox3.Text;
             else
@@ -218,14 +204,24 @@ namespace NeonSpy
             List<int> arraySredniChas = new List<int>();
             string averHourInMonth = "";
 
+            if ((comboBox2.SelectedIndex + 1) == Convert.ToInt32(today.Substring(3, 2)))
+                //MessageBox.Show("comboBox2.SelectedIndex + 1  -> " + (comboBox2.SelectedIndex + 1) + "   today.Substring(3, 2)  -> " + today.Substring(3, 2));
+                daysInCurrentMonth = Convert.ToInt32(today.Substring(0, 2));
+            //MessageBox.Show("Dni  -> " + daysInCurrentMonth);
+
             dataGridView1.DataSource = null;
             if (IsEmployeeChecked())
             {
+                string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
+                NpgsqlConnection conn = new NpgsqlConnection(connstring);
+                conn = new NpgsqlConnection(connstring);
+                conn.Open();
+
                 DialogResult res = MessageBox.Show("Загрузить данные по сотруднику в таблицу?", "Уведомление", MessageBoxButtons.YesNo);
                 if (res == DialogResult.Yes)
                     printTheData = true;
 
-                for (int i = 1; i < daysInCurrentMonth; i++)
+                for (int i = 1; i <= daysInCurrentMonth; i++)
                 {
                     isFirstDay = true;
                     if (i < 10)
@@ -240,19 +236,16 @@ namespace NeonSpy
                     {
                         dataStart = dataSt.Substring(0, 4) + i.ToString() + dataSt.Substring(6, 15);
                         dataEnd = dataEn.Substring(0, 4) + i.ToString() + dataEn.Substring(6, 15);
-                        if (i == daysInCurrentMonth - 1)
+                        if (i == daysInCurrentMonth)
                             dataEndMonth = dataEnd;
                         dataForCheck = i.ToString() + day.Substring(2, 8);
                     }
-                    if ((string.Compare(_type, "otsutstvie") == 0) && (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday) || (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday))
+                    if (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday || Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday)
                     {
                         holidayDaysInMonth++;
                         continue;
                     }
 
-                    string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
-                    NpgsqlConnection conn = new NpgsqlConnection(connstring);
-                    conn.Open();
                     NpgsqlCommand comandSelect = new NpgsqlCommand("SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] +
                                                                    "' AND \"appearTime\" > '" + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"appearTime\"", conn);
                     NpgsqlDataReader reader;
@@ -261,42 +254,41 @@ namespace NeonSpy
                     {
                         workDaysEmployeeInCurrentMonth++;
                         //  Приход-уход
-                        if (string.Compare(_type, "prihod-uhod") == 0 || string.Compare(_type, "srednii-4as") == 0)
+                        int counter = 0;
+                        while (reader.Read())
                         {
-                            while (reader.Read())
+                            if (isFirstDay)
                             {
-                                if (isFirstDay)
-                                {
-                                    arrayTimePrihod.Add(reader["appearTime"].ToString().Substring(13, 8));
-                                    isFirstDay = false;
-                                }
-                                else
-                                    strForLastDay = reader["appearTime"].ToString().Substring(13, 8);
+                                arrayTimePrihod.Add(reader["appearTime"].ToString().Substring(13, 8));
+                                isFirstDay = false;
+                            }
+                            else
+                            {
+                                strForLastDay = reader["appearTime"].ToString().Substring(13, 8);
+                                counter++;
                             }
                         }
-                        arrayTimeUhod.Add(strForLastDay);
+                        if (counter == 0)
+                            arrayTimeUhod.Add(arrayTimePrihod[arrayTimePrihod.Count - 1]);
+                        else
+                            arrayTimeUhod.Add(strForLastDay);
                         ///////////////////////
                     }
-                    //  Средний час
-                    double averageHoursInMonth = 0;
-                    if (string.Compare(_type, "srednii-4as") == 0)
-                    {
-                        for (int j = 0; j < arrayTimePrihod.Count; j++)
-                            arraySredniChas.Add(ConvertTimeToSeconds(arrayTimeUhod[j]) - ConvertTimeToSeconds(arrayTimePrihod[j]));
-                        foreach (int val in arraySredniChas)
-                            averageHoursInMonth += val;
-                        averageHoursInMonth /= arraySredniChas.Count;
-                        averHourInMonth = ConvertSecondsToTime(averageHoursInMonth); 
-                    }
-                    ///////////////////////
                     reader.Dispose();
-                    conn.Close();
+                    //conn.Close();
                 }
+                //  Средний час
+                double averageHoursInMonth = 0;
+                for (int j = 0; j < arrayTimePrihod.Count; j++)
+                    arraySredniChas.Add(ConvertTimeToSeconds(arrayTimeUhod[j]) - ConvertTimeToSeconds(arrayTimePrihod[j]));
+                foreach (int val in arraySredniChas)
+                    averageHoursInMonth += val;
+                averageHoursInMonth /= arraySredniChas.Count;
+                if (averageHoursInMonth > 0)
+                    averHourInMonth = ConvertSecondsToTime(averageHoursInMonth);
+                ///////////////////////
                 if (printTheData)
                 {
-                    string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
-                    NpgsqlConnection conn = new NpgsqlConnection(connstring);
-                    conn.Open();
                     string sql = "SELECT * FROM tblData WHERE \"macDevice\" = '" + employee[comboBox1.Text] + "' AND \"appearTime\" > '" + dataStartMonth + "' AND \"appearTime\" < '" + dataEndMonth + "' ORDER BY \"appearTime\"";
                     NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
                     ds.Reset();
@@ -304,14 +296,16 @@ namespace NeonSpy
                     da.Fill(ds);
                     dt = ds.Tables[0];
                     dataGridView1.DataSource = dt;
-                    conn.Close();
                 }
-                if (string.Compare(_type, "otsutstvie") == 0)
+                if (arrayTimeUhod.Count > 0)
+                {
                     textBox4.Text = (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth).ToString();
-                else if (string.Compare(_type, "prihod-uhod") == 0)
                     textBox3.Text = CalculateAverTimePrihodUhod(arrayTimePrihod) + " / " + CalculateAverTimePrihodUhod(arrayTimeUhod);
-                else if (string.Compare(_type, "srednii-4as") == 0)
                     textBox5.Text = averHourInMonth;
+                }
+                else
+                    ClearTextBoxex("-");
+                conn.Close();
             }
             else
                 MessageBox.Show("Не выбран сотрудник!");
@@ -319,37 +313,22 @@ namespace NeonSpy
         //  РАСЧЕТ ВРЕМЕНИ ПРИХОДА-УХОДА
         private string CalculateAverTimePrihodUhod(List<string> _list)
         {
-            int totalSeconds = 0, sumSeconds = 0, count = 0, h, m, s;
+            int totalSeconds = 0, sumSeconds = 0, count = 0;
             string res = "";
-            double hh, mm, ss, averSeconds;
+            double averSeconds = 0;
             // Подсчет 
             foreach(string val in _list)
             {
-                totalSeconds = ConvertTimeToSeconds(val);
-                sumSeconds += totalSeconds;
-                count++;
+                if (string.Compare(val, "") != 0)
+                {
+                    totalSeconds = ConvertTimeToSeconds(val);
+                    sumSeconds += totalSeconds;
+                    count++;
+                }
             }
-            averSeconds = sumSeconds / count;
+            if (count > 0)
+                averSeconds = sumSeconds / count;
             res = ConvertSecondsToTime(averSeconds);
-            //hh = averSeconds / 3600;
-            //h = (int)hh;
-            //mm = (averSeconds - h * 3600) / 60;
-            //m = (int)mm;
-            //ss = averSeconds - h * 3600 - m * 60;
-            //s = (int)ss;
-
-            //if (h < 10)
-            //    res += "0" + h.ToString();
-            //else
-            //    res += h.ToString();
-            //if (m < 10)
-            //    res += ":0" + m.ToString();
-            //else
-            //    res += ":" + m.ToString();
-            //if (s < 10)
-            //    res += ":0" + s.ToString();
-            //else
-            //    res += ":" + s.ToString();
             return res;
         }
         //  КОНВЕРТИРОВАНИЕ ВРЕМЕНИ В СЕКУНДЫ
@@ -449,7 +428,67 @@ namespace NeonSpy
                 res += ", " + _d.Substring(6, 4) + " 23:59:59";
             return res;
         }
+        //  ОЧИСТКА ПОЛЕЙ
+        private void ClearTextBoxex(string _s)
+        {
+            textBox3.Text = _s;
+            textBox4.Text = _s;
+            textBox5.Text = _s;
+        }
+        //  ВЫБОР СОТРУДНИКА
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (string.Compare(comboBox1.Text, selectedEmployee) != 0)
+            {
+                ClearTextBoxex("");
+                label9.Text = comboBox1.Text;
+                label9.Left = textBox4.Left + textBox4.Width - label9.Width;
+                RequestData();
+            }
+        }
+        //  ВЫБОР МЕСЯЦА
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!fstRunCombo2)
+            {
+                if (string.Compare(comboBox2.Text, selectedWorkMonth) != 0)
+                {
+                    ClearTextBoxex("");
+                    RequestData();
+                }
+            }
+            else
+                fstRunCombo2 = false;
 
-        
+        }
+        //  ВЫБОР ГОДА
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!fstRunCombo3)
+            {
+                if (string.Compare(comboBox3.Text, selectedWorkYear) != 0)
+                {
+                    ClearTextBoxex("");
+                    RequestData();
+                }
+            }
+            else
+                fstRunCombo3 = false;
+        }
+        //  СМЕНА СОТРУДНИКА
+        private void comboBox1_Click(object sender, EventArgs e)
+        {
+            selectedEmployee = comboBox1.Text;
+        }
+        //  СМЕНА МЕСЯЦА
+        private void comboBox2_Click(object sender, EventArgs e)
+        {
+            selectedWorkMonth = comboBox2.Text;
+        }
+        //  СМЕНА ГОДА
+        private void comboBox3_Click(object sender, EventArgs e)
+        {
+            selectedWorkYear = comboBox3.Text;
+        }
     }
 }
