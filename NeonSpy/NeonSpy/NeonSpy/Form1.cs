@@ -80,8 +80,7 @@ namespace NeonSpy
             dataGridView1.AutoResizeColumns();
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
 
-            dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing; //or even better .DisableResizing. Most time consumption enum is DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders
-            // set it to false if not needed
+            dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             dataGridView1.RowHeadersVisible = false;
 
             comboBox2.Text = MonthToCombo[Convert.ToInt32(DateTime.Now.ToString().Substring(3, 2))];
@@ -431,6 +430,8 @@ namespace NeonSpy
         //  ОЧИСТКА ПОЛЕЙ
         private void ClearTextBoxex(string _s)
         {
+            textBox1.Text = "";
+            textBox2.Text = "";
             textBox3.Text = _s;
             textBox4.Text = _s;
             textBox5.Text = _s;
