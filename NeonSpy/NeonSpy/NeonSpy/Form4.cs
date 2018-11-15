@@ -86,31 +86,38 @@ namespace NeonSpy
         private void button1_Click(object sender, EventArgs e)
         {
             string d1 = dateTimePicker1.Value.ToShortDateString(), d2 = dateTimePicker1.Value.ToShortDateString();
-            string dataStart, dataEnd;
-            dataStart = frm.GetTrueData(d1, "start");
-            dataEnd = frm.GetTrueData(d2, "end");
-            int count = 0;
 
-            string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};",
-                                              "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
-            NpgsqlConnection conn = new NpgsqlConnection(connstring);
-            conn.Open();
-            string sql = "SELECT * FROM tblData WHERE ";
-            foreach(string val in arrayKnownMacs)
+            DialogResult res = MessageBox.Show("Выбранный вами интервал выборки 3 дня или более, время загрузки данных будет увеличено. Продолжить?", "Уведомление", MessageBoxButtons.YesNo);
+            if (dateTimePicker2.Value.Date - dateTimePicker1.Value.Date > 3)
+            if (res == DialogResult.Yes)
             {
-                if (count == arrayKnownMacs.Count - 1)
-                    break;
-                sql += "\"macDevice\" != '" + val + "' AND ";
-                count++;
+                //string d1 = dateTimePicker1.Value.ToShortDateString(), d2 = dateTimePicker1.Value.ToShortDateString();
+                string dataStart, dataEnd;
+                dataStart = frm.GetTrueData(d1, "start");
+                dataEnd = frm.GetTrueData(d2, "end");
+                int count = 0;
+
+                string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};",
+                                                  "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
+                NpgsqlConnection conn = new NpgsqlConnection(connstring);
+                conn.Open();
+                string sql = "SELECT * FROM tblData WHERE ";
+                foreach (string val in arrayKnownMacs)
+                {
+                    if (count == arrayKnownMacs.Count - 1)
+                        break;
+                    sql += "\"macDevice\" != '" + val + "' AND ";
+                    count++;
+                }
+                sql += "\"macDevice\" != '" + arrayKnownMacs[arrayKnownMacs.Count - 1] + "' AND \"appearTime\" > '"
+                                 + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"macDevice\", \"appearTime\"";
+                NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
+                ds.Reset();
+                da.Fill(ds);
+                dt = ds.Tables[0];
+                dataGridView1.DataSource = dt;
+                conn.Close();
             }
-            sql += "\"macDevice\" != '" + arrayKnownMacs[arrayKnownMacs.Count - 1] + "' AND \"appearTime\" > '"
-                             + dataStart + "' AND \"appearTime\" < '" + dataEnd + "' ORDER BY \"macDevice\", \"appearTime\"";
-            NpgsqlDataAdapter da = new NpgsqlDataAdapter(sql, conn);
-            ds.Reset();
-            da.Fill(ds);
-            dt = ds.Tables[0];
-            dataGridView1.DataSource = dt;
-            conn.Close();
         }
     }
 }

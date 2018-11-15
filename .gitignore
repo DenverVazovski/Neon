@@ -3,3 +3,5 @@ NeonSpy/NeonSpy/.vs/NeonSpy/v15/.suo
 *.ide-shm
 NeonSpy/NeonSpy/NeonSpy/obj/Debug/NeonSpy.csproj.CoreCompileInputs.cache
 *.cache
+NeonSpy/NeonSpy/.vs/NeonSpy/v15/Server/sqlite3/storage.ide-shm
+NeonSpy/NeonSpy/.vs/NeonSpy/v15/Server/sqlite3/storage.ide-wal
