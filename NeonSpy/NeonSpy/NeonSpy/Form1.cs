@@ -19,7 +19,13 @@ namespace NeonSpy
         private string selectedEmployee = "", selectedWorkDay = "", selectedWorkMonth = "", selectedWorkYear = "";
         private bool fstRunCombo2 = true, fstRunCombo3 = true;
 
+        private List<string> arrayHolidays = new List<string>();
+
+        private static int[] picXY = new int[2];
+
         Form2 employeForm;
+        Form3 holidaysForm;
+        Form4 macAdressesForm;
 
         public Form1()
         {
@@ -47,6 +53,10 @@ namespace NeonSpy
             dataGridView1.Top = panel1.Top + panel1.Height - 1;
             button3.Top = dataGridView1.Top + dataGridView1.Height + 10;
             button3.Left = dataGridView1.Left;
+            button4.Left = button3.Left + button3.Width + 10;
+            button4.Top = button3.Top;
+            button5.Left = button4.Left + button4.Width + 10;
+            button5.Top = button3.Top;
 
             MonthToCombo.Add(01, "Январь");
             MonthToCombo.Add(02, "Февраль");
@@ -62,6 +72,7 @@ namespace NeonSpy
             MonthToCombo.Add(12, "Декабрь");
 
             LoadEmployeeListInComboBox();
+            LoadHolidaysInArray();
             // Изменение стиля оформления заголовков
             DataGridViewCellStyle columnHeaderStyle = new DataGridViewCellStyle
             {
@@ -74,8 +85,6 @@ namespace NeonSpy
             foreach (DataGridViewColumn col in dataGridView1.Columns)
                 col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             // Авто-высота
-            //dataGridView1.AutoResizeColumnHeadersHeight();
-            // dataGridView1.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
             // Авто-ширина
             dataGridView1.AutoResizeColumns();
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
@@ -86,12 +95,18 @@ namespace NeonSpy
             comboBox2.Text = MonthToCombo[Convert.ToInt32(DateTime.Now.ToString().Substring(3, 2))];
             comboBox3.Text = DateTime.Now.ToString().Substring(6, 4);
 
-            pictureBox1.Top = button3.Top - 4;
+            pictureBox1.Top = button3.Top + 4;
             pictureBox1.Left = dataGridView1.Left + dataGridView1.Width - pictureBox1.Width;
+            picXY[0] = pictureBox1.Left;
+            picXY[1] = pictureBox1.Top;
 
             label9.Top = label1.Top - 10;
-            //label9.Left = label5.Left;
             label9.Left = textBox4.Left + textBox4.Width - label9.Width;
+        }
+        //  ГЕТТЕР НА ПОЛОЖЕНИЕ ЛОГОТИПА
+        public int[] GetPicXY()
+        {
+            return picXY;
         }
         //  ПОЛУЧЕНИЕ СОТРУДНИКОВ С МАКАМИ И ЗАГРУЗКА В КОМБОБОКС
         private void LoadEmployeeListInComboBox()
@@ -113,7 +128,25 @@ namespace NeonSpy
             }
             reader.Dispose();
             conn.Close();
+        }
+        //  ЗАГРУЗКА В ЛОКАЛЬНЫЙ МАССИВ СПИСКА ПРАЗДНИЧНЫХ ДНЕЙ
+        private void LoadHolidaysInArray()
+        {
+            string connstring = string.Format("Server={0};Port={1};User Id={2};Password={3};Database={4};", "10.0.0.99", "5432", "denver", "intGroup7", "MikrotikDb");
+            NpgsqlConnection conn = new NpgsqlConnection(connstring);
+            conn.Open();
+            NpgsqlCommand comandSelect = new NpgsqlCommand("SELECT holiday FROM tblHolidays", conn);
+            NpgsqlDataReader reader;
+            reader = comandSelect.ExecuteReader();
 
+            arrayHolidays.Clear();
+
+            while (reader.Read())
+            {
+                arrayHolidays.Add(reader["holiday"].ToString());
+            }
+            reader.Dispose();
+            conn.Close();
         }
         //  ПОЛНАЯ ВЫГРУЗКА
         private void button1_Click(object sender, EventArgs e)
@@ -179,14 +212,27 @@ namespace NeonSpy
         {
             employeForm = new Form2();
             employeForm.ShowDialog();
-
             LoadEmployeeListInComboBox();
+        }
+        //  ТАБЛИЦА ПРОСМОТРА МАК АДРЕСОВ
+        private void button4_Click(object sender, EventArgs e)
+        {
+            macAdressesForm = new Form4();
+            macAdressesForm.ShowDialog();
+        }
+        //  РЕДАКТИРОВАНИЕ ПРАЗДНИЧНЫХ ДНЕЙ
+        private void button5_Click(object sender, EventArgs e)
+        {
+            holidaysForm = new Form3();
+            holidaysForm.ShowDialog();
+
+            LoadHolidaysInArray();
         }
         //  ВЫБОРКА НА МЕСЯЦ
         private void RequestData()
         {
             int daysInCurrentMonth = DateTime.DaysInMonth(Convert.ToInt32(comboBox3.Text), comboBox2.SelectedIndex + 1);
-            int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0, daysInCurrentMonthAfterToday = 0;
+            int workDaysEmployeeInCurrentMonth = 0, holidayDaysInMonth = 0;
             bool printTheData = false;
             string day = "", today = DateTime.Today.ToShortDateString();
             if (comboBox2.SelectedIndex < 9)
@@ -202,11 +248,11 @@ namespace NeonSpy
             // Для среднего часа
             List<int> arraySredniChas = new List<int>();
             string averHourInMonth = "";
+            // Количество праздничных дней
+            int holidayDays = 0;
 
             if ((comboBox2.SelectedIndex + 1) == Convert.ToInt32(today.Substring(3, 2)))
-                //MessageBox.Show("comboBox2.SelectedIndex + 1  -> " + (comboBox2.SelectedIndex + 1) + "   today.Substring(3, 2)  -> " + today.Substring(3, 2));
                 daysInCurrentMonth = Convert.ToInt32(today.Substring(0, 2));
-            //MessageBox.Show("Dni  -> " + daysInCurrentMonth);
 
             dataGridView1.DataSource = null;
             if (IsEmployeeChecked())
@@ -238,6 +284,11 @@ namespace NeonSpy
                         if (i == daysInCurrentMonth)
                             dataEndMonth = dataEnd;
                         dataForCheck = i.ToString() + day.Substring(2, 8);
+                    }
+                    if (arrayHolidays.Contains(dataForCheck))
+                    {
+                        holidayDays++;
+                        continue;
                     }
                     if (Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Saturday || Convert.ToDateTime(dataForCheck).DayOfWeek == DayOfWeek.Sunday)
                     {
@@ -298,7 +349,7 @@ namespace NeonSpy
                 }
                 if (arrayTimeUhod.Count > 0)
                 {
-                    textBox4.Text = (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth).ToString();
+                    textBox4.Text = (daysInCurrentMonth - holidayDaysInMonth - workDaysEmployeeInCurrentMonth - holidayDays).ToString();
                     textBox3.Text = CalculateAverTimePrihodUhod(arrayTimePrihod) + " / " + CalculateAverTimePrihodUhod(arrayTimeUhod);
                     textBox5.Text = averHourInMonth;
                 }
@@ -370,7 +421,7 @@ namespace NeonSpy
             return false;
         }
 
-        private string GetTrueData(string _d, string _f)
+        public string GetTrueData(string _d, string _f)
         {
             string res = "";
             switch (_d.Substring(3, 2))
