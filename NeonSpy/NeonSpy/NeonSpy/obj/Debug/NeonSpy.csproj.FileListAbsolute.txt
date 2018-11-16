@@ -231,6 +231,5 @@ D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.csproj.CoreCompi
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.csproj.CopyComplete
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.exe
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.pdb
-D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.csprojAssemblyReference.cache
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.Form3.resources
 D:\Workspace\Git\Neon\NeonSpy\NeonSpy\NeonSpy\obj\Debug\NeonSpy.Form4.resources

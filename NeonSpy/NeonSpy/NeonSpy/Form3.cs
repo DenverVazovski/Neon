@@ -104,7 +104,7 @@ namespace NeonSpy
             dataGridView1.Rows[e.RowIndex].Selected = true;
             dataGridView1.Focus();
             if (e.Button == MouseButtons.Right)
-                contextMenuStrip1.Show(dataGridView1, new Point(Cursor.Position.X, Cursor.Position.Y));
+                contextMenuStrip1.Show(dataGridView1, PointToClient(new Point(e.X, e.Y)));
         }
         //  ДОБАВЛЕНИЕ ПРАЗДНИЧНОГО ДНЯ
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
